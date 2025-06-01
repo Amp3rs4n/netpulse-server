@@ -1,17 +1,14 @@
 {
   "name": "netpulse-server",
   "version": "1.0.0",
-  "description": "Backend API for NetPulse speedtest history",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "cors": "^2.8.5"
   }
 }
