@@ -1,16 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const sqlite3 = require("sqlite3").verbose();
+import express from 'express';
+import cors from 'cors';
+import sqlite3 from 'sqlite3';
+import { createServer } from 'http';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
+const db = new sqlite3.Database("results.db");
 const port = process.env.PORT || 3000;
 
-app.use(cors({
-  origin: "https://amp3rs4n.github.io"
-}));
+app.use(cors({ origin: "https://amp3rs4n.github.io" }));
 app.use(express.json());
-
-const db = new sqlite3.Database("results.db");
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS test_results (
@@ -32,29 +35,24 @@ app.post("/api/results", (req, res) => {
      VALUES (?, ?, ?, ?, ?, ?)`,
     [timestamp, ip, download, upload, ping, jitter],
     function (err) {
-      if (err) {
-        console.error("❌ Insert error:", err.message);
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       res.status(201).json({ success: true, id: this.lastID });
     }
   );
 });
 
 app.get("/api/results", (req, res) => {
-  db.all("SELECT * FROM test_results ORDER BY id DESC LIMIT 100", (err, rows) => {
-    if (err) {
-      console.error("❌ Fetch error:", err.message);
-      return res.status(500).json({ error: err.message });
+  db.all(
+    "SELECT * FROM test_results ORDER BY id DESC LIMIT 100",
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
     }
-    res.json(rows);
-  });
+  );
 });
 
-app.get("/", (req, res) => {
-  res.send("NetPulse API is running ✅");
-});
+app.get("/", (_, res) => res.send("NetPulse API is running ✅"));
 
 app.listen(port, () => {
-  console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🚀 Server running at http://localhost:${port}`);
 });
