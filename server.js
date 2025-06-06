@@ -21,9 +21,15 @@ const port = process.env.PORT || 3000;
 app.use(cors({ origin: "https://amp3rs4n.github.io", credentials: true }));
 app.use(express.json());
 app.use(session({
+  store: new SQLiteStore({ db: 'sessions.sqlite' }),
   secret: process.env.SESSION_SECRET || 'netpulse_secret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // бо Render не працює через HTTPS між backend/frontend
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
