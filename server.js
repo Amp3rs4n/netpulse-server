@@ -5,10 +5,13 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import dotenv from 'dotenv';
+import connectSqlite3 from 'connect-sqlite3'; // 🆕 ІМПОРТ SQLiteStore
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 dotenv.config();
+
+const SQLiteStore = connectSqlite3(session); // 🆕 ІНІЦІАЛІЗАЦІЯ
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
