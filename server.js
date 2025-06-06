@@ -25,7 +25,7 @@ app.use(cors({
   origin: "https://amp3rs4n.github.io",
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'x-user-email']
 }));
 
 app.use(express.json());
