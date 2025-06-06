@@ -81,7 +81,12 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect('https://amp3rs4n.github.io/netpulse');
+    const { displayName, emails, photos } = req.user;
+    const email = emails?.[0]?.value || '';
+    const picture = photos?.[0]?.value || '';
+
+    const redirectUrl = `https://amp3rs4n.github.io/netpulse?name=${encodeURIComponent(displayName)}&email=${encodeURIComponent(email)}&photo=${encodeURIComponent(picture)}`;
+    res.redirect(redirectUrl);
   }
 );
 
@@ -102,8 +107,8 @@ app.get("/auth/user", (req, res) => {
 
 // Save result
 app.post("/api/results", (req, res) => {
-  const { timestamp, ip, download, upload, ping, jitter } = req.body;
-  const user_email = req.user?.emails?.[0]?.value || null;
+  const { timestamp, ip, download, upload, ping, jitter, email } = req.body;
+  const user_email = email || null;
 
   db.run(
     `INSERT INTO test_results (timestamp, ip, download, upload, ping, jitter, user_email)
@@ -116,14 +121,14 @@ app.post("/api/results", (req, res) => {
   );
 });
 
-// Get results (only for authenticated user)
+// Get results (by email)
 app.get("/api/results", (req, res) => {
-  const user_email = req.user?.emails?.[0]?.value || null;
-  if (!user_email) return res.status(401).json({ error: "Unauthorized" });
+  const email = req.query.email || req.headers["x-user-email"];
+  if (!email) return res.status(401).json({ error: "Unauthorized" });
 
   db.all(
     "SELECT * FROM test_results WHERE user_email = ? ORDER BY id DESC LIMIT 100",
-    [user_email],
+    [email],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
