@@ -28,6 +28,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Passport config
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -72,6 +73,15 @@ app.get('/auth/logout', (req, res) => {
   req.logout(() => {
     res.redirect('https://amp3rs4n.github.io/netpulse');
   });
+});
+
+// 🔐 Get current user info
+app.get("/auth/user", (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    res.json({ user: req.user });
+  } else {
+    res.status(401).json({ user: null });
+  }
 });
 
 // Save result
