@@ -5,13 +5,13 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import dotenv from 'dotenv';
-import connectSqlite3 from 'connect-sqlite3'; // 🆕 ІМПОРТ SQLiteStore
+import connectSqlite3 from 'connect-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 dotenv.config();
 
-const SQLiteStore = connectSqlite3(session); // 🆕 ІНІЦІАЛІЗАЦІЯ
+const SQLiteStore = connectSqlite3(session);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,7 +21,13 @@ const db = new sqlite3.Database("results.db");
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: "https://amp3rs4n.github.io", credentials: true }));
+app.use(cors({
+  origin: "https://amp3rs4n.github.io",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
 app.use(session({
   store: new SQLiteStore({ db: 'sessions.sqlite' }),
@@ -29,11 +35,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // бо Render не працює через HTTPS між backend/frontend
+    secure: true,
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'none'
   }
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
 
