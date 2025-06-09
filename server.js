@@ -20,6 +20,21 @@ const app = express();
 const db = new sqlite3.Database("results.db");
 const port = process.env.PORT || 3000;
 
+app.post("/api/results", (req, res) => {
+  const { timestamp, ip, download, upload, ping, jitter, email } = req.body;
+  const user_email = email || req.user?.emails?.[0]?.value || null;
+
+  db.run(
+    `INSERT INTO test_results (timestamp, ip, download, upload, ping, jitter, user_email)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [timestamp, ip, download, upload, ping, jitter, user_email],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ success: true, id: this.lastID });
+    }
+  );
+});
+
 // Middleware
 app.use(cors({
   origin: "https://amp3rs4n.github.io",
