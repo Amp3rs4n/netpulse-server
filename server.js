@@ -12,7 +12,6 @@ import { dirname } from 'path';
 dotenv.config();
 
 const SQLiteStore = connectSqlite3(session);
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -20,30 +19,15 @@ const app = express();
 const db = new sqlite3.Database("results.db");
 const port = process.env.PORT || 3000;
 
-app.post("/api/results", (req, res) => {
-  const { timestamp, ip, download, upload, ping, jitter, email } = req.body;
-  const user_email = email || req.user?.emails?.[0]?.value || null;
-
-  db.run(
-    `INSERT INTO test_results (timestamp, ip, download, upload, ping, jitter, user_email)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [timestamp, ip, download, upload, ping, jitter, user_email],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ success: true, id: this.lastID });
-    }
-  );
-});
-
-// Middleware
+// ✅ CORS: динамічний + credentials
 app.use(cors({
-  origin: "https://amp3rs4n.github.io",
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'x-user-email']
+  origin: true,
+  credentials: true
 }));
 
 app.use(express.json());
+
+// ✅ Sessions
 app.use(session({
   store: new SQLiteStore({ db: 'sessions.sqlite' }),
   secret: process.env.SESSION_SECRET || 'netpulse_secret',
@@ -59,7 +43,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport config
+// ✅ Passport Google OAuth
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -68,15 +52,10 @@ passport.use(new GoogleStrategy({
   return done(null, profile);
 }));
 
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// SQLite init
+// ✅ SQLite table init
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS test_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +69,7 @@ db.serialize(() => {
   )`);
 });
 
-// Auth routes
+// 🌐 Auth Routes
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback',
@@ -111,7 +90,6 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
-// 🔐 Get current user info
 app.get("/auth/user", (req, res) => {
   if (req.isAuthenticated() && req.user) {
     res.json({ user: req.user });
@@ -120,32 +98,40 @@ app.get("/auth/user", (req, res) => {
   }
 });
 
-// Save result
+// ✅ POST /api/results
 app.post("/api/results", (req, res) => {
   const { timestamp, ip, download, upload, ping, jitter, email } = req.body;
-  const user_email = email || null;
+  const user_email = email || req.user?.emails?.[0]?.value || null;
+
+  if (!timestamp) return res.status(400).json({ error: "Missing timestamp" });
 
   db.run(
     `INSERT INTO test_results (timestamp, ip, download, upload, ping, jitter, user_email)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [timestamp, ip, download, upload, ping, jitter, user_email],
     function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error("DB error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
       res.status(201).json({ success: true, id: this.lastID });
     }
   );
 });
 
-// Get results (by email)
+// ✅ GET /api/results
 app.get("/api/results", (req, res) => {
-  const email = req.query.email || req.headers["x-user-email"];
+  const email = req.query.email || req.headers["x-user-email"] || req.user?.emails?.[0]?.value;
   if (!email) return res.status(401).json({ error: "Unauthorized" });
 
   db.all(
     "SELECT * FROM test_results WHERE user_email = ? ORDER BY id DESC LIMIT 100",
     [email],
     (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error("DB error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
       res.json(rows);
     }
   );
@@ -153,6 +139,7 @@ app.get("/api/results", (req, res) => {
 
 app.get("/", (_, res) => res.send("NetPulse API is running ✅"));
 
+// ✅ Запуск сервера
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
